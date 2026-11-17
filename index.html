@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Data Viewer</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #2f6fed;
+      --primary-dark: #234fb3;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dfe7f5;
+      --row-alt: #f9fbff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      padding: 24px;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: var(--primary-dark);
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.12);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #eef4ff;
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    tr:nth-child(even) td {
+      background: var(--row-alt);
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e8f8ef;
+      color: #1e7e53;
+    }
+
+    .error {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: #fff2f2;
+      color: #b42318;
+      border: 1px solid #f7c9c9;
+      display: none;
+    }
+
+    .loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 25px;
+      font-size: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 12px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      th, td {
+        padding: 10px 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Employee Information</h1>
+      <p class="subtitle">XML data displayed in tabular form</p>
+
+      <div class="controls">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search employee name, ID, or department..." />
+        </div>
+      </div>
+
+      <div id="loading" class="loading">Loading employee data...</div>
+      <div id="error" class="error"></div>
+
+      <table id="employeeTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Role</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="employeeTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const xmlFile = "employee.xml";
+
+    async function loadEmployees() {
+      try {
+        const response = await fetch(xmlFile);
+        if (!response.ok) {
+          throw new Error("Unable to load employee.xml");
+        }
+
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+        const parseError = xmlDoc.querySelector("parsererror");
+        if (parseError) {
+          throw new Error("Invalid XML format.");
+        }
+
+        const employees = Array.from(xmlDoc.getElementsByTagName("employee"));
+        const tbody = document.getElementById("employeeTableBody");
+
+        tbody.innerHTML = "";
+
+        if (employees.length === 0) {
+          throw new Error("No employee records found.");
+        }
+
+        employees.forEach(emp => {
+          const id = emp.getElementsByTagName("id")[0]?.textContent || "-";
+          const name = emp.getElementsByTagName("name")[0]?.textContent || "-";
+          const department = emp.getElementsByTagName("department")[0]?.textContent || "-";
+          const role = emp.getElementsByTagName("role")[0]?.textContent || "-";
+          const email = emp.getElementsByTagName("email")[0]?.textContent || "-";
+          const phone = emp.getElementsByTagName("phone")[0]?.textContent || "-";
+          const status = emp.getElementsByTagName("status")[0]?.textContent || "Active";
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${id}</td>
+            <td>${name}</td>
+            <td>${department}</td>
+            <td>${role}</td>
+            <td>${email}</td>
+            <td>${phone}</td>
+            <td><span class="status">${status}</span></td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("employeeTable").style.display = "table";
+      } catch (error) {
+        document.getElementById("loading").style.display = "none";
+        const errorBox = document.getElementById("error");
+        errorBox.textContent = "Error: " + error.message;
+        errorBox.style.display = "block";
+      }
+    }
+
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const query = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#employeeTableBody tr");
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? "" : "none";
+      });
+    });
+
+    loadEmployees();
+  </script>
+</body>
+</html>
